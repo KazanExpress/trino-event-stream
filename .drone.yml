@@ -1,0 +1,47 @@
+kind: pipeline
+name: spark-etl
+
+trigger:
+  event:
+    exclude:
+      - promote
+
+volumes:
+  - name: m2-cache
+    host:
+      path: /tmp/m2-cache-new
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+
+anchors:
+  - &mvn-step
+    image: maven:3-eclipse-temurin-17-focal
+    privileged: true
+    volumes:
+      - name: m2-cache
+        path: /root/.m2
+      - name: docker
+        path: /var/run/docker.sock
+
+steps:
+  - name: build jar file
+    <<: *mvn-step
+    commands:
+      - mvn install
+    when:
+      branch:
+        - development
+        -
+  - name: deploy to nexus
+    <<: *mvn-step
+    commands:
+      - mvn deploy -B -N
+      - mvn deploy -B -pl kafka-event-listener-trino -Dmaven.test.skip=true -Dmaven.install.skip=true
+    when:
+      ref:
+        - refs/heads/development
+        - refs/tags/*
+      event:
+        - push
+        - tag
