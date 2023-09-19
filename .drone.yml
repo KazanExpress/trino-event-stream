@@ -17,7 +17,6 @@ volumes:
 anchors:
   - &mvn-step
     image: maven:3-eclipse-temurin-17-focal
-    privileged: true
     volumes:
       - name: m2-cache
         path: /root/.m2
